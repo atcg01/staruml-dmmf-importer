@@ -1,72 +1,185 @@
 /**
  * StarUML DMMF Importer - Main Entry Point
  * StarUML v7 Extension
- * Debug ALL app properties to find menu API
+ * Found it! app.menu exists and is a MenuManager with template
  */
 
 function activate() {
-  console.log('[DMMF v7] ===== DEBUG START =====');
+  console.log('[DMMF v7] ===== MENU DEBUG =====');
   
-  if (typeof app === 'undefined') {
-    console.error('[DMMF v7] ERROR: app is undefined');
+  if (typeof app === 'undefined' || !app.menu) {
+    console.error('[DMMF v7] ERROR: app or app.menu is not defined');
     return;
   }
   
-  // Show ALL app properties
-  const appKeys = Object.keys(app).sort();
-  console.log('[DMMF v7] app has', appKeys.length, 'properties:');
+  console.log('[DMMF v7] app.menu:', typeof app.menu);
+  console.log('[DMMF v7] app.menu.constructor:', app.menu.constructor.name);
   
-  // Show in chunks to avoid console overflow
-  for (let i = 0; i < appKeys.length; i += 10) {
-    const chunk = appKeys.slice(i, i + 10);
-    console.log('[DMMF v7] app properties:', chunk.join(', '));
+  // Show app.menu properties
+  console.log('[DMMF v7] app.menu keys:', Object.keys(app.menu));
+  
+  // Check template
+  if (app.menu.template) {
+    console.log('[DMMF v7] app.menu.template type:', typeof app.menu.template);
+    if (Array.isArray(app.menu.template)) {
+      console.log('[DMMF v7] app.menu.template is an array with', app.menu.template.length, 'items');
+      // Show first few items
+      for (let i = 0; i < Math.min(5, app.menu.template.length); i++) {
+        console.log(`[DMMF v7] app.menu.template[${i}]:`, JSON.stringify(app.menu.template[i]).substring(0, 200));
+      }
+    } else if (typeof app.menu.template === 'object') {
+      console.log('[DMMF v7] app.menu.template keys:', Object.keys(app.menu.template));
+      console.log('[DMMF v7] app.menu.template:', JSON.stringify(app.menu.template).substring(0, 500));
+    }
   }
   
-  // Look for menu-related properties
-  const menuRelated = appKeys.filter(k => 
-    k.toLowerCase().includes('menu') || 
-    k.toLowerCase().includes('bar') ||
-    k.toLowerCase().includes('tool') ||
-    k.toLowerCase().includes('ui')
-  );
-  console.log('[DMMF v7] Menu-related properties:', menuRelated);
+  // Try to find Tools menu
+  if (app.menu.template && Array.isArray(app.menu.template)) {
+    const toolsMenu = app.menu.template.find(item => 
+      item.id === 'tools' || 
+      item.label === 'Tools' ||
+      (item.submenu && item.submenu.find(s => s.id === 'tools' || s.label === 'Tools'))
+    );
+    if (toolsMenu) {
+      console.log('[DMMF v7] Found Tools menu:', JSON.stringify(toolsMenu).substring(0, 500));
+    }
+  }
   
-  // Show types of key properties
-  const keyProps = ['commands', 'extensions', 'ui', 'window', 'menuBar', 'menus', 'menuManager', 'menu'];
-  for (const prop of keyProps) {
-    if (app[prop]) {
-      console.log(`[DMMF v7] app.${prop}:`, typeof app[prop]);
-      if (typeof app[prop] === 'object') {
-        const subKeys = Object.keys(app[prop]).slice(0, 10);
-        console.log(`[DMMF v7] app.${prop} methods:`, subKeys.join(', '));
+  // Try to add menu items
+  createMenus();
+  
+  console.log('[DMMF v7] ===== END =====');
+}
+
+function createMenus() {
+  if (!app || !app.menu) {
+    console.error('[DMMF v7] ERROR: Cannot create menus');
+    return;
+  }
+  
+  // Try to find the template structure
+  if (app.menu.template && Array.isArray(app.menu.template)) {
+    // Find the Tools menu
+    const toolsIndex = app.menu.template.findIndex(item => 
+      item.id === 'tools' || item.label === 'Tools'
+    );
+    
+    if (toolsIndex >= 0) {
+      console.log('[DMMF v7] Found Tools at index:', toolsIndex);
+      const toolsMenu = app.menu.template[toolsIndex];
+      console.log('[DMMF v7] Tools menu structure:', JSON.stringify(toolsMenu));
+      
+      if (toolsMenu.submenu && Array.isArray(toolsMenu.submenu)) {
+        console.log('[DMMF v7] Tools submenu has', toolsMenu.submenu.length, 'items');
+        // Add our items to the Tools submenu
+        const importGroupIndex = toolsMenu.submenu.findIndex(item => item.group === 'import' || item.label === 'Import');
+        
+        const newItems = [
+          {
+            id: 'staruml-dmmf-importer.import',
+            command: 'staruml-dmmf-importer:import',
+            label: 'Import Prisma DMMF...',
+            group: 'import',
+            order: 10
+          },
+          {
+            type: 'separator',
+            id: 'separator-dmmf',
+            group: 'import',
+            order: 15
+          },
+          {
+            id: 'staruml-dmmf-importer.reimport',
+            command: 'staruml-dmmf-importer:reimport',
+            label: 'Reimport Prisma DMMF',
+            group: 'import',
+            order: 20
+          },
+          {
+            id: 'staruml-dmmf-importer.show-options',
+            command: 'staruml-dmmf-importer:show-options',
+            label: 'DMMF Importer Options',
+            group: 'import',
+            order: 30
+          }
+        ];
+        
+        // Add new items to Tools submenu
+        toolsMenu.submenu.push(...newItems);
+        
+        // Refresh menu
+        if (typeof app.menu.update === 'function') {
+          app.menu.update();
+        } else if (typeof app.menu.refresh === 'function') {
+          app.menu.refresh();
+        }
+        
+        console.log('[DMMF v7] Menu items added to Tools submenu');
       }
     }
   }
   
-  // Show what each property is
-  for (const key of appKeys) {
-    const value = app[key];
-    if (typeof value === 'object' && value !== null) {
-      const constructorName = value.constructor ? value.constructor.name : 'Object';
-      const subKeys = Object.keys(value).slice(0, 5);
-      console.log(`[DMMF v7] app.${key}: ${typeof value} (${constructorName}) - keys: ${subKeys.join(', ')}`);
-    } else {
-      console.log(`[DMMF v7] app.${key}: ${typeof value}`);
+  // Try app.menu.addMenuItem if it exists
+  if (typeof app.menu.addMenuItem === 'function') {
+    console.log('[DMMF v7] Trying app.menu.addMenuItem()');
+    try {
+      app.menu.addMenuItem(['Tools'], {
+        id: 'staruml-dmmf-importer.import',
+        command: 'staruml-dmmf-importer:import',
+        label: 'Import Prisma DMMF...',
+        group: 'import',
+        order: 10
+      });
+      console.log('[DMMF v7] Menu created via app.menu.addMenuItem()');
+    } catch (e) {
+      console.error('[DMMF v7] addMenuItem failed:', e.message);
     }
   }
+}
+
+// Register commands
+function registerCommands() {
+  if (!app || !app.commands) return;
   
-  console.log('[DMMF v7] ===== DEBUG END =====');
-  console.log('[DMMF v7] Extension activated.');
+  try {
+    app.commands.register('staruml-dmmf-importer:import', {
+      label: 'Import Prisma DMMF...',
+      run: function() { showDialog('Import triggered!'); }
+    });
+    app.commands.register('staruml-dmmf-importer:reimport', {
+      label: 'Reimport Prisma DMMF',
+      run: function() { showDialog('Reimport triggered!'); }
+    });
+    app.commands.register('staruml-dmmf-importer:show-options', {
+      label: 'DMMF Importer Options',
+      run: function() { showDialog('Options triggered!'); }
+    });
+    console.log('[DMMF v7] Commands registered');
+  } catch (e) {
+    console.error('[DMMF v7] Command registration failed:', e.message);
+  }
+}
+
+function showDialog(message) {
+  if (app && app.dialogs) {
+    try {
+      app.dialogs.showInfoDialog({ title: 'DMMF v7', message: message });
+    } catch (e) {
+      console.error('[DMMF v7] Dialog error:', e.message);
+    }
+  } else {
+    console.log('[DMMF v7]', message);
+  }
 }
 
 module.exports = {
-  activate: activate,
-  deactivate: function() {
-    console.log('[DMMF v7] Extension deactivated');
+  activate: function() {
+    registerCommands();
+    activate();
+  },
+  deactivate: function() {},
+  init: function() {
+    registerCommands();
+    activate();
   }
 };
-
-function init() {
-  activate();
-}
-module.exports.init = init;
