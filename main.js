@@ -4,6 +4,8 @@
  */
 
 const fs = require('fs');
+const path = require('path');
+const { getDMMF } = require('@prisma/internals');
 
 function init() {
   registerCommands();
@@ -17,10 +19,6 @@ function registerCommands() {
 }
 
 function openFileDialog() {
-  if (!app || !app.dialogs) {
-    console.error('[DMMF v7] app.dialogs not available');
-    return;
-  }
 
   console.log('[DMMF v7] Opening file dialog...');
   
@@ -30,22 +28,68 @@ function openFileDialog() {
   if (files && files.length > 0) {
     const filePath = files[0];
     console.log('[DMMF v7] Processing file:', filePath);
-    receiveFile(filePath);
+    parseDMMF(filePath);
   } else {
     console.log('[DMMF v7] No file selected');
   }
 }
 
-function receiveFile(filePath) {
+function parseDMMF(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
-    console.log('[DMMF v7] File received successfully');
-    console.log('[DMMF v7] File path:', filePath);
-    console.log('[DMMF v7] File size:', content.length, 'bytes');
-    console.log('[DMMF v7] Pipeline: OK - file loaded into memory');
+    console.log('[DMMF v7] File read, size:', content.length, 'bytes');
+    
+    let dmmf;
+    const ext = path.extname(filePath).toLowerCase();
+    
+    if (ext === '.json') {
+      // Direct JSON DMMF file
+      dmmf = JSON.parse(content);
+      console.log('[DMMF v7] Parsed as JSON DMMF');
+    } else if (ext === '.prisma') {
+      // Prisma schema file - need to compile to DMMF
+      if (!getDMMF) {
+        console.error('[DMMF v7] Cannot parse .prisma file: @prisma/generator-helper not installed');
+        console.error('[DMMF v7] Run: npm install @prisma/generator-helper');
+        return;
+      }
+      console.log('[DMMF v7] Compiling .prisma to DMMF...');
+      dmmf = getDMMF({ datamodel: content });
+      console.log('[DMMF v7] Compiled .prisma to DMMF');
+    } else {
+      // Try JSON parse for any other extension
+      try {
+        dmmf = JSON.parse(content);
+        console.log('[DMMF v7] Parsed as JSON DMMF');
+      } catch (e) {
+        console.error('[DMMF v7] Unrecognized file format:', ext);
+        return;
+      }
+    }
+    
+    // Validate DMMF structure
+    if (isValidDMMF(dmmf)) {
+      console.log('[DMMF v7] DMMF parsing: SUCCESS');
+      console.log('[DMMF v7] Models:', dmmf.datamodel?.models?.length || 0);
+      console.log('[DMMF v7] Enums:', dmmf.datamodel?.enums?.length || 0);
+    } else {
+      console.error('[DMMF v7] DMMF parsing: INVALID STRUCTURE');
+    }
+    
   } catch (e) {
-    console.error('[DMMF v7] Error receiving file:', e.message);
+    console.error('[DMMF v7] DMMF parsing error:', e.message);
   }
+}
+
+function isValidDMMF(dmmf) {
+  if (!dmmf || typeof dmmf !== 'object') return false;
+  if (dmmf.datamodel && typeof dmmf.datamodel === 'object') {
+    return true;
+  }
+  if (dmmf.schema && typeof dmmf.schema === 'object') {
+    return true;
+  }
+  return false;
 }
 
 function createMenus() {

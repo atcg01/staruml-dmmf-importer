@@ -30,3 +30,4 @@ coverage/
 # StarUML temporary files
 *.tmp
 *.bak
+package-lock.json

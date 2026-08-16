@@ -26,6 +26,7 @@
     "class-diagram"
   ],
   "dependencies": {
-    "@prisma/generator-helper": "^7.9.1"
+    "@prisma/generator-helper": "^7.9.1",
+    "@prisma/internals": "^7.9.1"
   }
 }
