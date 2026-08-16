@@ -24,5 +24,8 @@
     "uml",
     "import",
     "class-diagram"
-  ]
+  ],
+  "dependencies": {
+    "@prisma/generator-helper": "^7.9.1"
+  }
 }
