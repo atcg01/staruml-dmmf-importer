@@ -9,17 +9,17 @@
   "contributes": {
     "commands": [
       {
-        "id": "staruml-dmmf-importer.import",
+        "id": "staruml-dmmf-importer:import",
         "title": "Import Prisma DMMF...",
         "description": "Import a Prisma DMMF JSON file"
       },
       {
-        "id": "staruml-dmmf-importer.reimport",
+        "id": "staruml-dmmf-importer:reimport",
         "title": "Reimport Prisma DMMF",
         "description": "Reimport a previously imported DMMF"
       },
       {
-        "id": "staruml-dmmf-importer.show-options",
+        "id": "staruml-dmmf-importer:show-options",
         "title": "DMMF Importer Options",
         "description": "Show importer options"
       }
@@ -28,8 +28,8 @@
       "tools": [
         {
           "id": "staruml-dmmf-importer.import",
-          "title": "Import Prisma DMMF...",
           "command": "staruml-dmmf-importer:import",
+          "title": "Import Prisma DMMF...",
           "group": "import",
           "order": 10
         },
@@ -41,15 +41,15 @@
         },
         {
           "id": "staruml-dmmf-importer.reimport",
-          "title": "Reimport Prisma DMMF",
           "command": "staruml-dmmf-importer:reimport",
+          "title": "Reimport Prisma DMMF",
           "group": "import",
           "order": 20
         },
         {
           "id": "staruml-dmmf-importer.show-options",
-          "title": "DMMF Importer Options",
           "command": "staruml-dmmf-importer:show-options",
+          "title": "DMMF Importer Options",
           "group": "import",
           "order": 30
         }
