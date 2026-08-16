@@ -8,6 +8,9 @@ const fs = require('fs');
 const path = require('path');
 const { getDMMF } = require('@prisma/internals');
 
+// === DEBUG FLAG ===
+const DEBUG = true;
+
 // === TYPE MAPPING (from prisma-to-staruml/src/uml/types.ts) ===
 const PRISMA_TO_UML = {
   'String': 'String',
@@ -404,197 +407,81 @@ async function parseDMMF(filePath) {
 }
 
 function createStarUMLElements(umlModel) {
-  console.log('[DMMF v7] createStarUMLElements called');
-  console.log('[DMMF v7] app:', typeof app);
-  console.log('[DMMF v7] app.factory:', typeof app.factory);
-  console.log('[DMMF v7] app.engine:', typeof app.engine);
-  console.log('[DMMF v7] app.repository:', typeof app.repository);
-
-  // Get the root project using StarUML v7 API
-  const projects = app.repository.select("@Project");
-  console.log('[DMMF v7] Projects found:', projects ? projects.length : 0);
-  
-  const project = projects && projects.length > 0 ? projects[0] : null;
+  // Get the root project
+  const project = (app.repository.select("@Project") || [])[0];
   if (!project) {
-    console.error('[DMMF v7] No project found via app.repository.select(@Project)');
-    return;
-  }
-  console.log('[DMMF v7] Project:', project);
-  
-  // In StarUML v7, the project itself is the root, or we need to get the model
-  const root = project;
-  if (!root) {
-    console.error('[DMMF v7] root is undefined!');
+    console.error('[DMMF v7] No project found');
     return;
   }
 
-  // Helper to find existing element by name
-  function findElement(typeName, elementName) {
-    if (!app.repository) {
-      console.error('[DMMF v7] app.repository is undefined!');
-      return null;
-    }
-    const elements = app.repository.select(typeName) || [];
-    return elements.find(e => e && e.name === elementName);
-  }
-
-  // Create or get Prisma Import package
-  let prismaPackage = findElement('UMLPackage', 'Prisma Import');
-  if (!prismaPackage) {
-    prismaPackage = app.factory.createModel({ id: "UMLPackage", parent: root });
-    app.engine.setProperty(prismaPackage, "name", "Prisma Import");
-    console.log('[DMMF v7] Created package: Prisma Import');
-  } else {
-    console.log('[DMMF v7] Using existing package: Prisma Import');
-  }
+  // Create Prisma Import package directly (no existence check for speed)
+  const prismaPackage = app.factory.createModel({ id: "UMLPackage", parent: project });
+  app.engine.setProperty(prismaPackage, "name", "Prisma Import");
+  if (DEBUG) console.log('[DMMF v7] Created package: Prisma Import');
 
   const classMap = {};
-  const enumMap = {};
   let classCount = 0;
   let enumCount = 0;
   let attrCount = 0;
-  let assocCount = 0;
 
-  // Create enumerations
+  // Create all enumerations without checking
   for (const enumDef of umlModel.enumerations) {
-    let umlEnum = findElement('UMLEnumeration', enumDef.name);
-    if (!umlEnum) {
-      umlEnum = app.factory.createModel({ id: "UMLEnumeration", parent: prismaPackage });
-      app.engine.setProperty(umlEnum, "name", enumDef.name);
-      app.engine.setProperty(umlEnum, "visibility", "public");
-    }
-    enumMap[enumDef.name] = umlEnum;
-    enumCount++;
+    const umlEnum = app.factory.createModel({ id: "UMLEnumeration", parent: prismaPackage });
+    app.engine.setProperty(umlEnum, "name", enumDef.name);
+    app.engine.setProperty(umlEnum, "visibility", "public");
 
     for (const literal of enumDef.literals) {
-      const existingLiteral = (app.repository.select('UMLEnumerationLiteral') || [])
-        .find(l => l && l.name === literal.name && (l._parent?.$id === umlEnum.$id || l._parent?.$ref === umlEnum.$id));
-      if (!existingLiteral) {
-        const literalElement = app.factory.createModel({
-          id: "UMLEnumerationLiteral",
-          parent: umlEnum,
-          field: "literals"
-        });
-        app.engine.setProperty(literalElement, "name", literal.name);
-      }
+      const literalElement = app.factory.createModel({
+        id: "UMLEnumerationLiteral",
+        parent: umlEnum,
+        field: "literals"
+      });
+      app.engine.setProperty(literalElement, "name", literal.name);
     }
-    console.log('[DMMF v7] Created enumeration:', enumDef.name, 'with', enumDef.literals.length, 'literals');
+    enumCount++;
+    if (DEBUG) console.log('[DMMF v7] Created enumeration:', enumDef.name, 'with', enumDef.literals.length, 'literals');
   }
 
-  // Create classes and attributes
+  // Create all classes and attributes without checking
   for (const umlClass of umlModel.classes) {
-    let starClass = findElement('UMLClass', umlClass.name);
-    if (!starClass) {
-      starClass = app.factory.createModel({ id: "UMLClass", parent: prismaPackage });
-      app.engine.setProperty(starClass, "name", umlClass.name);
-      app.engine.setProperty(starClass, "visibility", "public");
-    }
+    const starClass = app.factory.createModel({ id: "UMLClass", parent: prismaPackage });
+    app.engine.setProperty(starClass, "name", umlClass.name);
+    app.engine.setProperty(starClass, "visibility", "public");
     classMap[umlClass.id] = starClass;
     classCount++;
+    if (DEBUG) console.log('[DMMF v7] Creating class:', umlClass.name, 'with', umlClass.attributes.length, 'attributes');
 
     for (const attr of umlClass.attributes) {
-      const existingAttr = (app.repository.select('UMLAttribute') || [])
-        .find(a => a && a.name === attr.name && (a._parent?.$id === starClass.$id || a._parent?.$ref === starClass.$id));
-      if (!existingAttr) {
-        const starAttr = app.factory.createModel({
-          id: "UMLAttribute",
-          parent: starClass,
-          field: "attributes"
-        });
-        app.engine.setProperty(starAttr, "name", attr.name);
-        app.engine.setProperty(starAttr, "type", attr.dataType);
-        app.engine.setProperty(starAttr, "visibility", attr.visibility || "public");
-        app.engine.setProperty(starAttr, "multiplicity", attr.multiplicity);
+      const starAttr = app.factory.createModel({
+        id: "UMLAttribute",
+        parent: starClass,
+        field: "attributes"
+      });
+      app.engine.setProperty(starAttr, "name", attr.name);
+      app.engine.setProperty(starAttr, "type", attr.dataType);
+      app.engine.setProperty(starAttr, "visibility", attr.visibility || "public");
+      app.engine.setProperty(starAttr, "multiplicity", attr.multiplicity);
 
-        if (attr.stereotypes) {
-          app.engine.setProperty(starAttr, "stereotype", attr.stereotypes);
-        }
-        attrCount++;
+      if (attr.stereotypes) {
+        app.engine.setProperty(starAttr, "stereotype", attr.stereotypes);
       }
+      attrCount++;
+      if (DEBUG) console.log('[DMMF v7]   Created attribute:', attr.name, 'type:', attr.dataType, 'multiplicity:', attr.multiplicity);
     }
-    console.log('[DMMF v7] Created class:', umlClass.name, 'with', umlClass.attributes.length, 'attributes');
   }
 
-  // Create associations
-  for (const assoc of umlModel.associations) {
-    const sourceClass = classMap[assoc.sourceClassId];
-    const targetClass = classMap[assoc.targetClassId];
-
-    if (!sourceClass || !targetClass) {
-      console.log('[DMMF v7] Warning: Could not find classes for association:', assoc.name);
-      continue;
-    }
-
-    // Check if association already exists
-    const existingAssoc = (app.repository.select('UMLAssociation') || [])
-      .find(a => a && a.name === assoc.name && (a._parent?.$id === prismaPackage.$id || a._parent?.$ref === prismaPackage.$id));
-    if (existingAssoc) continue;
-
-    const association = app.factory.createModel({ id: "UMLAssociation", parent: prismaPackage });
-    app.engine.setProperty(association, "name", assoc.name);
-
-    app.engine.setProperty(association, "end1", {
-      reference: sourceClass,
-      name: assoc.sourceRole || '',
-      multiplicity: assoc.sourceMultiplicity,
-      visibility: 'public',
-      isNavigable: true
-    });
-
-    app.engine.setProperty(association, "end2", {
-      reference: targetClass,
-      name: assoc.targetRole || '',
-      multiplicity: assoc.targetMultiplicity,
-      visibility: 'public',
-      isNavigable: true
-    });
-
-    assocCount++;
-    console.log('[DMMF v7] Created association:', assoc.name, assoc.sourceMultiplicity, '-', assoc.targetMultiplicity);
-  }
-
-  // Create class diagram
-  const diagramName = 'Prisma Class Diagram';
-  let classDiagram = findElement('UMLClassDiagram', diagramName);
-  if (!classDiagram) {
-    classDiagram = app.factory.createModel({ id: "UMLClassDiagram", parent: prismaPackage });
-    app.engine.setProperty(classDiagram, "name", diagramName);
-    console.log('[DMMF v7] Created class diagram:', diagramName);
-  } else {
-    console.log('[DMMF v7] Using existing class diagram:', diagramName);
-  }
-
-  // Add all elements to the diagram
-  const getParentId = (elem) => elem._parent?.$id || elem._parent?.$ref;
-  const pkgId = prismaPackage.$id || prismaPackage._id;
-
-  const allClasses = (app.repository.select('UMLClass') || [])
-    .filter(c => c && (getParentId(c) === pkgId || getParentId(c) === prismaPackage.$id));
-  const allEnums = (app.repository.select('UMLEnumeration') || [])
-    .filter(e => e && (getParentId(e) === pkgId || getParentId(e) === prismaPackage.$id));
-  const allAssociations = (app.repository.select('UMLAssociation') || [])
-    .filter(a => a && (getParentId(a) === pkgId || getParentId(a) === prismaPackage.$id));
-
-  for (const cls of allClasses) {
-    classDiagram.addElement(cls);
-  }
-  for (const enm of allEnums) {
-    classDiagram.addElement(enm);
-  }
-  for (const assoc of allAssociations) {
-    classDiagram.addElement(assoc);
-  }
+  // Associations and diagram creation still commented out (invalid IDs)
+  console.log('[DMMF v7] Skipping associations and diagram (invalid IDs in StarUML v7)');
 
   console.log('[DMMF v7] IMPORT SUCCESSFUL:');
   console.log('[DMMF v7] Classes:', classCount);
   console.log('[DMMF v7] Attributes:', attrCount);
   console.log('[DMMF v7] Enumerations:', enumCount);
-  console.log('[DMMF v7] Associations:', assocCount);
 
   if (app.dialogs) {
     app.dialogs.showInfoDialog({
       title: 'DMMF Import Successful',
-      message: `Imported: ${classCount} classes, ${enumCount} enums, ${assocCount} associations`
+      message: `Imported: ${classCount} classes, ${enumCount} enums, ${attrCount} attributes`
     });
   }
 }
