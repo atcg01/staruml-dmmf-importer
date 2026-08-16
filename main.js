@@ -3,6 +3,8 @@
  * StarUML v7 Extension
  */
 
+const fs = require('fs');
+
 function init() {
   registerCommands();
   createMenus();
@@ -20,28 +22,29 @@ function openFileDialog() {
     return;
   }
 
-  console.log('[DMMF v7] Test 1: showOpenDialog() with no args');
-  try {
-    const result1 = app.dialogs.showOpenDialog();
-    console.log('[DMMF v7] Result 1:', result1);
-  } catch (e) {
-    console.error('[DMMF v7] Test 1 error:', e.message);
+  console.log('[DMMF v7] Opening file dialog...');
+  
+  const files = app.dialogs.showOpenDialog();
+  console.log('[DMMF v7] Selected files:', files);
+  
+  if (files && files.length > 0) {
+    const filePath = files[0];
+    console.log('[DMMF v7] Processing file:', filePath);
+    receiveFile(filePath);
+  } else {
+    console.log('[DMMF v7] No file selected');
   }
+}
 
-  console.log('[DMMF v7] Test 2: showOpenDialog({}) with empty object');
+function receiveFile(filePath) {
   try {
-    const result2 = app.dialogs.showOpenDialog({});
-    console.log('[DMMF v7] Result 2:', result2);
+    const content = fs.readFileSync(filePath, 'utf8');
+    console.log('[DMMF v7] File received successfully');
+    console.log('[DMMF v7] File path:', filePath);
+    console.log('[DMMF v7] File size:', content.length, 'bytes');
+    console.log('[DMMF v7] Pipeline: OK - file loaded into memory');
   } catch (e) {
-    console.error('[DMMF v7] Test 2 error:', e.message);
-  }
-
-  console.log('[DMMF v7] Test 3: showOpenDialog(null) with null');
-  try {
-    const result3 = app.dialogs.showOpenDialog(null);
-    console.log('[DMMF v7] Result 3:', result3);
-  } catch (e) {
-    console.error('[DMMF v7] Test 3 error:', e.message);
+    console.error('[DMMF v7] Error receiving file:', e.message);
   }
 }
 
