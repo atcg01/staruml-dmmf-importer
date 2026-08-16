@@ -1,0 +1,66 @@
+{
+  "name": "staruml-dmmf-importer",
+  "version": "1.0.0",
+  "description": "Import Prisma DMMF JSON files into StarUML as native UML models",
+  "author": "Nicolas",
+  "license": "MIT",
+  "appVersion": "^7.0.0",
+  "main": "main.js",
+  "contributes": {
+    "commands": [
+      {
+        "id": "staruml-dmmf-importer.import",
+        "title": "Import Prisma DMMF...",
+        "description": "Import a Prisma DMMF JSON file"
+      },
+      {
+        "id": "staruml-dmmf-importer.reimport",
+        "title": "Reimport Prisma DMMF",
+        "description": "Reimport a previously imported DMMF"
+      },
+      {
+        "id": "staruml-dmmf-importer.show-options",
+        "title": "DMMF Importer Options",
+        "description": "Show importer options"
+      }
+    ],
+    "menus": {
+      "tools": [
+        {
+          "id": "staruml-dmmf-importer.import",
+          "title": "Import Prisma DMMF...",
+          "command": "staruml-dmmf-importer:import",
+          "group": "import",
+          "order": 10
+        },
+        {
+          "id": "separator-import",
+          "type": "separator",
+          "group": "import",
+          "order": 15
+        },
+        {
+          "id": "staruml-dmmf-importer.reimport",
+          "title": "Reimport Prisma DMMF",
+          "command": "staruml-dmmf-importer:reimport",
+          "group": "import",
+          "order": 20
+        },
+        {
+          "id": "staruml-dmmf-importer.show-options",
+          "title": "DMMF Importer Options",
+          "command": "staruml-dmmf-importer:show-options",
+          "group": "import",
+          "order": 30
+        }
+      ]
+    }
+  },
+  "keywords": [
+    "prisma",
+    "dmmf",
+    "uml",
+    "import",
+    "class-diagram"
+  ]
+}

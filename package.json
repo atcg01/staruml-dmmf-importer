@@ -1,0 +1,28 @@
+{
+  "name": "staruml-dmmf-importer",
+  "version": "1.0.0",
+  "description": "Import Prisma DMMF JSON files into StarUML as native UML models",
+  "author": "Nicolas",
+  "license": "MIT",
+  "homepage": "https://github.com/atcg01/staruml-dmmf-importer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atcg01/staruml-dmmf-importer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/atcg01/staruml-dmmf-importer/issues"
+  },
+  "staruml": {
+    "appVersion": "^7.0.0",
+    "extensionType": "app",
+    "main": "main.js"
+  },
+  "keywords": [
+    "staruml",
+    "prisma",
+    "dmmf",
+    "uml",
+    "import",
+    "class-diagram"
+  ]
+}
