@@ -10,73 +10,55 @@ function init() {
 
 function registerCommands() {
   if (!app || !app.commands) return;
-  
+  app.commands.register('staruml-dmmf-importer:import', openFileDialog);
+  console.log('[DMMF v7] Command registered');
+}
+
+function openFileDialog() {
+  if (!app || !app.dialogs) {
+    console.error('[DMMF v7] app.dialogs not available');
+    return;
+  }
+
+  console.log('[DMMF v7] Test 1: showOpenDialog() with no args');
   try {
-    app.commands.register('staruml-dmmf-importer:import', {
-      label: 'Import Prisma DMMF...',
-      run: function() { 
-        console.log('[DMMF v7] Import command triggered');
-        if (app.dialogs) {
-          app.dialogs.showInfoDialog({ title: 'DMMF Importer', message: 'Import triggered!' });
-        }
-      }
-    });
-    console.log('[DMMF v7] Command registered: staruml-dmmf-importer:import');
+    const result1 = app.dialogs.showOpenDialog();
+    console.log('[DMMF v7] Result 1:', result1);
   } catch (e) {
-    console.error('[DMMF v7] Command registration failed:', e.message);
+    console.error('[DMMF v7] Test 1 error:', e.message);
+  }
+
+  console.log('[DMMF v7] Test 2: showOpenDialog({}) with empty object');
+  try {
+    const result2 = app.dialogs.showOpenDialog({});
+    console.log('[DMMF v7] Result 2:', result2);
+  } catch (e) {
+    console.error('[DMMF v7] Test 2 error:', e.message);
+  }
+
+  console.log('[DMMF v7] Test 3: showOpenDialog(null) with null');
+  try {
+    const result3 = app.dialogs.showOpenDialog(null);
+    console.log('[DMMF v7] Result 3:', result3);
+  } catch (e) {
+    console.error('[DMMF v7] Test 3 error:', e.message);
   }
 }
 
 function createMenus() {
-  if (!app || !app.menu || !app.menu.template) {
-    console.error('[DMMF v7] Cannot create menus - app.menu.template not available');
-    return;
-  }
-  
-  console.log('[DMMF v7] Creating menus...');
-  console.log('[DMMF v7] app.menu.template length:', app.menu.template.length);
-  
-  // Find the Tools menu
+  if (!app || !app.menu || !app.menu.template) return;
   const toolsIndex = app.menu.template.findIndex(item => 
     item.id === 'tools' || item.label === 'Tools'
   );
-  
-  console.log('[DMMF v7] Tools menu index:', toolsIndex);
-  
-  if (toolsIndex >= 0) {
-    const toolsMenu = app.menu.template[toolsIndex];
-    console.log('[DMMF v7] Tools menu found - has submenu:', !!toolsMenu.submenu);
-    
-    if (toolsMenu.submenu && Array.isArray(toolsMenu.submenu)) {
-      console.log('[DMMF v7] Tools submenu length before:', toolsMenu.submenu.length);
-      
-      // Add our menu items to the Tools submenu
-      const newItems = [
-        {
-          id: 'staruml-dmmf-importer.import',
-          command: 'staruml-dmmf-importer:import',
-          label: 'Import Prisma DMMF...',
-          group: 'import',
-          order: 10
-        }
-      ];
-      
-      toolsMenu.submenu.push(...newItems);
-      
-      console.log('[DMMF v7] Tools submenu length after:', toolsMenu.submenu.length);
-      console.log('[DMMF v7] Menu items added to Tools submenu');
-      
-      // Try to refresh menu
-      if (typeof app.menu.update === 'function') {
-        console.log('[DMMF v7] Calling app.menu.update()');
-        app.menu.update();
-      } else if (typeof app.menu.refresh === 'function') {
-        console.log('[DMMF v7] Calling app.menu.refresh()');
-        app.menu.refresh();
-      } else {
-        console.log('[DMMF v7] No menu refresh function found');
-      }
-    }
+  if (toolsIndex >= 0 && app.menu.template[toolsIndex].submenu) {
+    app.menu.template[toolsIndex].submenu.push({
+      id: 'staruml-dmmf-importer.import',
+      command: 'staruml-dmmf-importer:import',
+      label: 'Import Prisma DMMF...',
+      group: 'import',
+      order: 10
+    });
+    console.log('[DMMF v7] Menu item added');
   }
 }
 
